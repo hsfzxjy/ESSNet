@@ -81,7 +81,7 @@ def get_argparser():
                         help="random seed (default: 1)")
     parser.add_argument("--print_interval", type=int, default=10,
                         help="print interval of loss (default: 10)")
-    parser.add_argument("--val_interval", type=int, default=100,
+    parser.add_argument("--val_interval", type=int, default=2000,
                         help="epoch interval for eval (default: 100)")
     parser.add_argument("--download", action='store_true', default=False,
                         help="download datasets")
@@ -137,7 +137,7 @@ def get_dataset(opts):
     elif opts.dataset == 'cityscapes':
         train_transform = et.ExtCompose([
             #et.ExtResize( 512 ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtRandomCrop(size=(400, 800)),
             et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
@@ -242,6 +242,8 @@ def get_dataset(opts):
                                   val=False)
         val_dst = CocoStuff10k(root=opts.data_root,split='test',
                                   val=True)
+    print(train_transform, flush=True)
+    print(val_transform, flush=True)
     return train_dst, val_dst
 
 
@@ -319,6 +321,7 @@ def validate(opts, model, loader, device, metrics,ret_samples_ids=None):
 
 def main():
     opts = get_argparser().parse_args()
+    print(opts)
     if opts.dataset.lower() == 'voc':
         opts.num_classes = 21
         ignore_index = 255
@@ -359,16 +362,16 @@ def main():
     
     train_dst, val_dst = get_dataset(opts)
     train_loader = data.DataLoader(
-        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2)
+        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=8)
     val_loader = data.DataLoader(
-        val_dst, batch_size=opts.val_batch_size, shuffle=False, num_workers=2)
+        val_dst, batch_size=opts.val_batch_size, shuffle=False, num_workers=8)
     print("Dataset: %s, Train set: %d, Val set: %d" %
           (opts.dataset, len(train_dst), len(val_dst)))
     epoch_interval = int(len(train_dst)/opts.batch_size)
-    if(epoch_interval>5000):
-        opts.val_interval = 5000
-    else:
-        opts.val_interval = epoch_interval
+    # if(epoch_interval>5000):
+    #     opts.val_interval = 5000
+    # else:
+    #     opts.val_interval = epoch_interval
     print("Evaluation after %d iterations" % (opts.val_interval))
 
     # Set up model
@@ -462,6 +465,7 @@ def main():
             optimizer.load_state_dict(checkpoint["optimizer_state"])
             scheduler.load_state_dict(checkpoint["scheduler_state"])
             cur_itrs = checkpoint["cur_itrs"]
+            cur_epochs = cur_itrs // epoch_interval
             best_score = checkpoint['best_score']
             print("scheduler state dict :",scheduler.state_dict())
             print("Training state restored from %s" % opts.ckpt)
@@ -484,7 +488,7 @@ def main():
         return
 
     interval_loss = 0
-
+    print('before write')
     writer.add_text('lr',str(opts.lr))
     writer.add_text('batch_size',str(opts.batch_size))
     writer.add_text('reduce_dim',str(opts.reduce_dim))
@@ -499,6 +503,7 @@ def main():
     writer.add_text('model',opts.model)
     accumulation_steps = 1
     writer.add_text('accumulation_steps',str(accumulation_steps))
+    print('after write')
     j = 0
     updateflag = False
     while True: 
@@ -534,15 +539,15 @@ def main():
             if(opts.reduce_dim):
                 del class_emb
             gc.collect()
-            if (cur_itrs) % 50 == 0 :
-                interval_loss = interval_loss/50
+            if (cur_itrs) % 5 == 0 :
+                interval_loss = interval_loss/5
                 print("Epoch %d, Itrs %d/%d, Loss=%f" %
-                      (cur_epochs, cur_itrs, opts.total_itrs, interval_loss))
+                      (cur_epochs, cur_itrs, opts.total_itrs, interval_loss),flush=True)
                 writer.add_scalar('Loss',interval_loss,cur_itrs)
                 writer.add_scalar('lr',scheduler.state_dict()['_last_lr'][0],cur_itrs)
-            if cur_itrs % opts.val_interval == 0:
+            if cur_itrs % opts.val_interval == 0 or cur_itrs >=  opts.total_itrs:
                 save_ckpt(opts.checkpoint_dir + '/latest_%d.pth' % (cur_itrs))
-            if cur_itrs % opts.val_interval == 0:
+            if cur_itrs % opts.val_interval == 0 or cur_itrs >=  opts.total_itrs:
                 print("validation...")
                 model.eval()
                 val_score, ret_samples = validate(

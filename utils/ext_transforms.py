@@ -113,9 +113,9 @@ class ExtRandomScale(object):
         target_size = ( int(img.size[1]*scale), int(img.size[0]*scale) )
         return F.resize(img, target_size, self.interpolation), F.resize(lbl, target_size, Image.NEAREST)
 
-    def __repr__(self):
-        interpolate_str = _pil_interpolation_to_str[self.interpolation]
-        return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str)
+    # def __repr__(self):
+    #     interpolate_str = ''#_pil_interpolation_to_str[self.interpolation]
+    #     return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str)
 
 class ExtScale(object):
     """Resize the input PIL Image to the given scale.
@@ -144,9 +144,9 @@ class ExtScale(object):
         target_size = ( int(img.size[1]*self.scale), int(img.size[0]*self.scale) ) # (H, W)
         return F.resize(img, target_size, self.interpolation), F.resize(lbl, target_size, Image.NEAREST)
 
-    def __repr__(self):
-        interpolate_str = _pil_interpolation_to_str[self.interpolation]
-        return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str)
+    # def __repr__(self):
+    #     interpolate_str = ''#_pil_interpolation_to_str[self.interpolation]
+    #     return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str)
 
 
 class ExtRandomRotation(object):
@@ -428,7 +428,7 @@ class ExtResize(object):
         return F.resize(img, self.size, self.interpolation), F.resize(lbl, self.size, Image.NEAREST)
 
     def __repr__(self):
-        interpolate_str = _pil_interpolation_to_str[self.interpolation]
+        interpolate_str = ''#_pil_interpolation_to_str[self.interpolation]
         return self.__class__.__name__ + '(size={0}, interpolation={1})'.format(self.size, interpolate_str) 
     
 class ExtColorJitter(object):

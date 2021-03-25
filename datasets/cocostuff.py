@@ -69,7 +69,7 @@ class BaseDataSet(Dataset):
         return image, label
 
     def _augmentation(self, image, label):
-        h, w, _ = image.shape
+        h, w = image.shape[:2]
         # Scaling, we set the bigger to base size, and the smaller 
         # one is rescaled to maintain the same ratio, if we don't have any obj in the image, re-do the processing
         if self.base_size:
@@ -81,7 +81,7 @@ class BaseDataSet(Dataset):
             image = cv2.resize(image, (w, h), interpolation=cv2.INTER_LINEAR)
             label = cv2.resize(label, (w, h), interpolation=cv2.INTER_NEAREST)
     
-        h, w, _ = image.shape
+        h, w = image.shape[:2]
         # Rotate the image with an angle between -10 and 10
         if self.rotate:
             angle = random.randint(-10, 10)
@@ -105,7 +105,7 @@ class BaseDataSet(Dataset):
                 label = cv2.copyMakeBorder(label, value=0, **pad_kwargs)
             
             # Cropping 
-            h, w, _ = image.shape
+            h, w = image.shape[:2]
             start_h = random.randint(0, h - self.crop_size)
             start_w = random.randint(0, w - self.crop_size)
             end_h = start_h + self.crop_size
@@ -171,7 +171,7 @@ class CocoStuff10k(BaseDataSet):
         image_id = self.files[index]
         image_path = os.path.join(self.root, 'images', image_id + '.jpg')
         label_path = os.path.join(self.root, 'annotations', image_id + '.mat')
-        image = np.asarray(Image.open(image_path), dtype=np.uint8)
+        image = np.asarray(Image.open(image_path).convert('RGB'), dtype=np.uint8)
         label = sio.loadmat(label_path)['S']
         label -= 1  # unlabeled (0 -> -1)
         label[label == -1] = 255
